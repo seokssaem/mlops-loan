@@ -91,6 +91,12 @@ class LoanRequest(BaseModel):
         examples=[3000.0],
     )
 
+    loan_purpose: str = Field(
+        ...,
+        description='대출목적',
+        examples=['주택구입'],
+    )
+
     repayment_method: str = Field(
         ...,
         description='상환방식',

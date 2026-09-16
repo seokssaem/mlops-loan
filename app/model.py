@@ -90,3 +90,83 @@ class LoanModel:
         self.feature_names = joblib.load(feature_names_path)
 
         logging.info('모델 로드 완료!')
+
+    # @staticmethod (정적 메서드)
+    #   클래스 내부에 정의하지만 인스턴스(self)나 클래스(cls) 정보를 받지 않는 메서드를 만들 때 사용
+    #   이 클래스와 관련은 있지만, 인스턴스 상태를 쓸 필요가 없는 함수를 클래스 안에 묶어두는 용도
+    @staticmethod
+    def _map_to_korean(data: dict[str, Any]) -> dict[str, Any]:
+        """
+        API의 영문 키를 학습 데이터에서 사용한 한글 컬럼명으로 변환한다.
+            매핑표에 없는 키는 원래 키를 유지하므로 확장 필드가 있어도 즉시 사라지지 않는다.
+            이후 feature_names 선택 단계에서 실제 입력만 남는다.
+        """
+        # result = {}
+        # for k, v in data.items():  # ("age": "나이")
+        #     new_key = FIELD_TO_COLUMN.get(k, k)
+        #     result[new_key] = v
+
+        # return result # return {FIELD_TO_COLUMN.get(k, k): v for k, v in data.items()}
+        result = {}
+        for key, value in data.items():
+            if key in FIELD_TO_COLUMN:
+                korean_key = FIELD_TO_COLUMN[key]  # ex) 나이
+            else:
+                korean_key = key  # ex) age
+            result[korean_key] = value
+
+
+
+        return result
+
+    def predict(self, data: dict[str, Any]) -> dict[str, Any]:
+        """
+        고객 한 명의 입력을 전처리하고 승인 확률과 위험 등급을 계산한다.
+            파이프라인 전체 구현
+        """
+        if self.pipeline is None:
+            raise RuntimeError('모델이 로드되지 않았습니다. load()함수를 먼저 호출하세요!')
+
+        mapped = self._map_to_korean(data)  # 컬럼을 한글로 재정렬 작업 (위에서 정의한 함수 호출)
+
+        # 학습을 진행할 데이터 프레임 생성
+        df = pd.DataFrame([mapped])[self.feature_names]
+
+        # 학습 때 저장한 LabelEncoder를 동일 컬럼에 적용
+        #   운영 데이터에 학습 시 없던 범주가 들어오면 transform에서 ValueError가 발생할 수 있다.
+        for col, encoder in self.label_encoders.items():
+            df[col] = encoder.transform(df[col])
+
+        # predict_proba 첫 행([0])에서 양성/승인 클래스([1]) 확률을 꺼낸다.
+        # Numpy 스칼라를 float로 변환해 JSON 직렬화가 가능하게 만든다.
+        # model.predict() --> 결과가 0/1
+        # model.predict_proba() --> 확률을 줘서 임계값 조정과 A/B/C/D 등급 산정이 가능해진다.
+        # [0, 1]의 뒤 인덱스 1의 의미
+        #   클래스 1(승인)의 확률 열을 의미한다.
+        #   0번 열은 0 -> 거절 확률을 의미한다.
+        probability = float(self.pipeline.predict_proba(df)[0, 1])
+
+        # 확률을 정책 임계값과 비교해 최종 승인 여부를 결정한다.
+        approved = probability >= self.threshold
+        risk_grade = self._get_risk_grade(probability)
+
+        return {
+            'approved': approved,
+            'probability': probability,
+            'risk_grade': risk_grade
+        }
+        
+
+    @staticmethod
+    def _get_risk_grade(probability: float) -> str:
+        """
+        승인 확률 구간을 사람이 해석하기 쉬운 A~D 등급으로 변환한다.
+        """
+        if probability >= 0.75:
+            return 'A'
+        elif probability >= 0.5:
+            return 'B'
+        elif probability >= 0.25:
+            return 'C'
+        else:
+            return 'D'
