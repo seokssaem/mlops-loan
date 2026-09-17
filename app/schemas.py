@@ -137,3 +137,41 @@ class LoanResponse(BaseModel):
         ...,
         description='리스크 등급 (A, B, C, D)'
     )
+
+# ---------------------------------------------------------------------------
+# 배치 예측용 스키마 (신규 추가)
+# ---------------------------------------------------------------------------
+class BatchLoanRequest(BaseModel):
+    """
+    배치(여러 건 동시에) 대출 심사 요청 스키마.
+
+    requests 필드 하나에 LoanRequest 리스트를 통째로 담는다.
+        리스트를 감싸는 모델을 만드는 이유 --> 리스트를 바로 요청 본문으로 받으면 (list[LoanRequest])
+            FastAPI가 최상위 배열을 검증하는 방식이 까다로워지고, 나중에 페이지네이션 정보 등
+            다른 필드를 추가하기도 어렵기 때문
+            (그래서 실무에서는 보통 배치 API는 "리스트를 감싸는 객체" 형태로 설계한다.)
+    """
+    requests: list[LoanRequest] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description='예측 요청 리스트 (최소 1건, 최대 100건)'
+    )
+
+class BatchLoanResponse(BaseModel):
+    """
+    배치 대출 심사 응답 스키마.
+    """
+    results: list[LoanResponse] = Field(
+        ...,
+        description='요청 순서와 1:1로 대응하는 예측 결과 리스트'
+    )
+
+# ---------------------------------------------------------------------------
+# 모델 정보 스키마 (신규 추가)
+# ---------------------------------------------------------------------------
+class ModelInfoResponse(BaseModel):
+    model_name: str   
+    model_version: str
+    features: list[str]
+    threshold: float

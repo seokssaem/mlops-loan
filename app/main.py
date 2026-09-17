@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
 from app.model import LoanModel
-from app.schemas import LoanRequest, LoanResponse
+from app.schemas import LoanRequest, LoanResponse, BatchLoanRequest, BatchLoanResponse, ModelInfoResponse
 
 # 애플리케이션 전체의 기본 로그 레벨을 INFO로 설정한다.
 # __name__ 기반 로거를 사용한 로그에 현재 모듈 이름이 함께 기록된다.
@@ -114,3 +114,43 @@ async def predict(request: LoanRequest):
     except Exception as e:
         logger.error(f'예측 처리 중 예상치 못한 오류 발생 : {e}', exc_info=True)
         raise HTTPException(status_code=500)
+
+# ---------------------------------------------------------------------------
+# 배치 예측용 엔드포인트 (신규 추가)
+# ---------------------------------------------------------------------------    
+@app.post('/predict/batch', response_model=BatchLoanResponse)
+async def predict_batch(request: BatchLoanRequest):
+    """
+    여러 건의 대출 심사를 한 번의 요청으로 처리한다.
+    """
+    model = app.state.model
+
+    try:
+        data_list = [item.model_dump() for item in request.requests]
+        results = model.predict_batch(data_list)
+        return BatchLoanResponse(results=[LoanResponse(**r) for r in results])
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail='입력값처리오류')
+    except Exception as e:
+        logger.error(f'배치 예측 처리 중 예상치 못한 오류 발생: {e}', exc_info=True)
+        raise HTTPException(status_code=500)
+
+# ---------------------------------------------------------------------------
+# 모델 정보 엔드포인트 (신규 추가)
+#   API로 노출하면 좋은 점:
+#       - CI/CD 파이프라인에서 배포 후 자동 검증 가능
+#       - 모니터링 대시보드에서 실시간 모델 상태 표시
+#       - 디버깅 시 "어떤 모델이 이 결과를 냈는지" 추적 가능
+# ---------------------------------------------------------------------------    
+@app.get('/model/info', response_model=ModelInfoResponse)
+async def model_info():
+    model = app.state.model
+
+    return ModelInfoResponse(
+        model_name='loan-approval-xgboost',
+        model_version=model.model_version,
+        features=model.feature_names,
+        threshold=model.threshold,
+    )

@@ -170,3 +170,42 @@ class LoanModel:
             return 'C'
         else:
             return 'D'
+
+    # ---------------------------------------------------------------------------
+    # 배치 예측용 메서드 (신규 추가)
+    # ---------------------------------------------------------------------------
+    def predict_batch(self, data_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        여러 명의 입력을 한 번에 전처리하고, 승인 확률과 위험 등급을 계산한다.
+        
+        """
+        if self.pipeline is None:
+            raise RuntimeError('모델이 로드되지 않았습니다. load() 함수를 먼저 호출하세요!')
+
+        if not data_list:
+            return []
+
+        mapped_list = [self._map_to_korean(data) for data in data_list]  # n개의 한글 dict
+
+        # 학습을 진행할 데이터프레임 생성
+        df = pd.DataFrame(mapped_list)[self.feature_names]
+
+        # 학습 때 저장한 LabelEncoder를 동일 컬럼에 적용
+        for col, encoder in self.label_encoders.items():
+            df[col] = encoder.transform(df[col])
+
+        # predict_proba를 n행짜리 df에 "한 번만 호출" --> [:, 1]로 승인(1) 확률 열만 꺼낸다.
+        probabilities = self.pipeline.predict_proba(df)[:, 1]
+
+        results = []        
+        for probability in probabilities:
+            probability = float(probability) # 실수형으로 변환해서 저장
+            approved = (probability >= self.threshold)
+            risk_grade = self._get_risk_grade(probability)
+            results.append({
+                'approved': approved,
+                'probability': probability,
+                'risk_grade': risk_grade
+            })
+        return results
+        
