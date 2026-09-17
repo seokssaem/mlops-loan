@@ -13,11 +13,13 @@ app/main.py
         API 응답 형식을 바꿀 때도 main.py나 schemas.py만 보면 된다.
 '''
 import logging
+import uuid
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
 from app.model import LoanModel
-from app.schemas import LoanRequest, LoanResponse, BatchLoanRequest, BatchLoanResponse, ModelInfoResponse
+from app.schemas import LoanRequest, LoanResponse, BatchLoanRequest, BatchLoanResponse, ModelInfoResponse, EnhancedLoanResponse
 
 # 애플리케이션 전체의 기본 로그 레벨을 INFO로 설정한다.
 # __name__ 기반 로거를 사용한 로그에 현재 모듈 이름이 함께 기록된다.
@@ -91,12 +93,12 @@ async def health_check():
         'model_loaded': model_loaded
     }
 
-@app.post('/predict', response_model=LoanResponse)
+@app.post('/predict', response_model=EnhancedLoanResponse)
 async def predict(request: LoanRequest):
     """
     검증된 고객 정보를 모델에 전달하고 표준 응답 스키마로 반환한다.
 
-    FastAPI는 함수 호출 전에 JSON 요청 본문을 LoanRequest로 검증하고, 반환값도 LoanResponse 형식에
+    FastAPI는 함수 호출 전에 JSON 요청 본문을 LoanRequest로 검증하고, 반환값도 EnhancedLoanResponse 형식에
     맞는지 다시 확인 한다.    
     """
     model = app.state.model
@@ -104,7 +106,22 @@ async def predict(request: LoanRequest):
     try:
         # Pydantic 객체를 순수한 dict로 바꾸어 모델 계층과 API계층을 분리한다. (느슨한 결합)
         result = model.predict(request.model_dump())
-        return LoanResponse(**result)
+
+        # ------------------- 요청 추적용 메타데이터 (신규 추가) ----------------------
+        # request_id / timestamp는 "무엇을 예측했는가"가 아니라, "언제, 어떤 요청이었는가"를
+        #   남기는 정보이므로 model.py가 아니라 main.py API 계층에서 만든다.
+        #   model.py의 predict()는 그대로 두고, 이 값만 API 등답에 얹는다.
+        #   - request_id --> 매 요청마다 새로 발급되는 UUID. 로그에서 "이 요청 하나"를
+        #                       정확히 찾아낼 수 있는 키가 된다.
+        #   - timestamp --> UTC 기준 ISO 8601 문자열. timezone.utc를 명시해야 서버가 어느시간대에
+        #                       있든 로그 시각 해석이 항상 같다.
+        return EnhancedLoanResponse(
+            request_id=str(uuid.uuid4()),
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            approved=result['approved'],
+            probability=result['probability'],
+            risk_grade=result['risk_grade'],
+        ) 
     except RuntimeError as e:
         # 모델이 준비되지 않은 상태는 일시적인 서비스 불가로 표현 
         # 503 에러 : Graceful Degradation의 HTTP 표현

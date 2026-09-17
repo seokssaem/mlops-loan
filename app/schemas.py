@@ -175,3 +175,41 @@ class ModelInfoResponse(BaseModel):
     model_version: str
     features: list[str]
     threshold: float
+
+# ---------------------------------------------------------------------------
+# 요청 추적용 확장 응답 스키마 (신규 추가)
+#   기존 LoanResponse는 다른 곳에서 사용되므로 건드리지 않고, /predict 하나에만
+#   적용할 "확장판"을 별도 클래스로 새로 만든다.
+# ---------------------------------------------------------------------------
+class EnhancedLoanResponse(BaseModel):
+    """
+    request_id / timestamp 를 추가해, 운영 중 특정 예측 요청을 추적할 수 있게 한 응답 스키마.
+    """
+    # 요청마다 새로 발급되는 고유 식별자 (UUID)
+    request_id: str = Field(
+        ...,
+        description='요청 고유 식별자 (UUID)',
+    )
+
+    # 예측이 실행된 시각. ISO 8601 문자열 (UTC)로 저장해 로그 검색/정렬을 쉽게 한다.
+    timestamp: str = Field(
+        ...,
+        description='예측 수행 시각 (ISO 8601, UTC)',
+    )
+
+    approved: bool = Field(
+        ...,
+        description='승인 여부 (True=승인, False=거절)',
+    )
+
+    probability: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description='승인 확률 (0.0 ~ 1.0)',
+    )
+
+    risk_grade: str = Field(
+        ...,
+        description='리스크 등급 (A, B, C, D)',
+    )
