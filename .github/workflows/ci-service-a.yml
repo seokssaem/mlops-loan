@@ -112,12 +112,3 @@ jobs:
           docker logs loan-api-ci
           exit 1
 
-# --------------------------------------------------------------
-# paths 필터 :  해당 서비스 코드가 변경된 경우에만 CI를 실행한다.
-# --------------------------------------------------------------
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'mlops-loan/**'
-      - '.github/workflows/ci-service-a.yml'
