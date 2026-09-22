@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
     try:
         model.load()
         logger.info('모델 로드 성공')
-    except Exception as e:
+    except Exception as e: # noqa: BLE001
         logger.error(f'모델 로드 실패: {e}')
         logger.warning('/predict 엔드포인트는 모델 로드 후 사용 가능')
 
@@ -136,8 +136,8 @@ async def predict(request: LoanRequest):
         raise HTTPException(status_code=503, detail=str(e))
     except ValueError:
         raise HTTPException(status_code=422, detail='입력값처리오류')
-    except Exception as e:
-        logger.error(f'예측 처리 중 예상치 못한 오류 발생 : {e}', exc_info=True)
+    except Exception:
+        logger.exception('예측 처리 중 예상치 못한 오류 발생')
         raise HTTPException(status_code=500)
 
 # ---------------------------------------------------------------------------
@@ -158,8 +158,8 @@ async def predict_batch(request: BatchLoanRequest):
         raise HTTPException(status_code=503, detail=str(e))
     except ValueError:
         raise HTTPException(status_code=422, detail='입력값처리오류')
-    except Exception as e:
-        logger.error(f'배치 예측 처리 중 예상치 못한 오류 발생: {e}', exc_info=True)
+    except Exception:
+        logger.exception('배치 예측 처리 중 예상치 못한 오류 발생')
         raise HTTPException(status_code=500)
 
 # ---------------------------------------------------------------------------
