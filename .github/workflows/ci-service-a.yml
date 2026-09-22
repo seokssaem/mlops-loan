@@ -19,14 +19,8 @@ on:
   push:
     branches:
       - main  # 메인 브랜치에서 push할 때만
-    paths:
-      - "mlops-loan/**"  # 코드가 바뀐 경우
-      - ".github/workflows/ci-service-a.yml" # 이 워크플로우 파일 자체가 바뀐 경우
   pull_request:  # PR 생성/업데이트 시
     branches: [main]
-    paths:
-      - "mlops-loan/**"  # 코드가 바뀐 경우
-      - ".github/workflows/ci-service-a.yml" # 이 워크플로우 파일 자체가 바뀐 경우
 
 # -------------------------------------------------
 # jobs: "무엇을 실행할 것인가?"
