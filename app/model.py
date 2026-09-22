@@ -6,12 +6,12 @@ app/model.py
 "스키마 - 모델 - API" 
 3단계 중 2단계 작업
 '''
-import os
 import logging
+from pathlib import Path
+from typing import Any
+
 import joblib
 import pandas as pd
-from typing import Any
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

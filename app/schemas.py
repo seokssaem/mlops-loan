@@ -11,6 +11,7 @@ app/schemas.py
 '''
 from pydantic import BaseModel, Field
 
+
 class LoanRequest(BaseModel):
     """
     대출 심사를 위한 고객 정보 입력 스키마

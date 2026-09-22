@@ -16,6 +16,7 @@ tests/test_api.py
 import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
