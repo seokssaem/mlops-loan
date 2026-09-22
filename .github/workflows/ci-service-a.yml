@@ -1,0 +1,123 @@
+# ===========================================================================
+# .github/workflows/ci-service-a.yml
+# -----------------------------------
+# 대출 심사 API CI 워크플로우 - 깃허브 액션
+#     코드를 push할 때마다 GitHub가 "깨끗한 가상머신"을 빌려서 자동 검사 수행
+#     Pass(초록) / Fail(빨강) 알려준다.
+#
+# yml의 위치 --> 루트의 .github/workflows/ 폴더 안
+# yml은 들여쓰기 지켜야 한다. --> 공백 2칸, 탭(Tab)은 YAML 에러의 원인이 된다.
+# =========================================================================== 
+
+# 워크플로우 이름
+name: ci-mlops-loan
+
+# -----------------------------------------
+# on: "언제 실행할 것인가" --> 트리거 역할
+# -----------------------------------------
+on:
+  push:
+    branches:
+      - main  # 메인 브랜치에서 push할 때만
+    paths:
+      - "mlops-loan/**"  # 코드가 바뀐 경우
+      - ".github/workflows/ci-service-a.yml" # 이 워크플로우 파일 자체가 바뀐 경우
+  pull_request:  # PR 생성/업데이트 시
+    branches: [main]
+    paths:
+      - "mlops-loan/**"  # 코드가 바뀐 경우
+      - ".github/workflows/ci-service-a.yml" # 이 워크플로우 파일 자체가 바뀐 경우
+
+# -------------------------------------------------
+# jobs: "무엇을 실행할 것인가?"
+#   job 한 개 = 가상 머신 한 개 
+#   job끼리는 기본적으로 "동시에(병렬)" 처리된다.
+#   순서는 강제하려면 needs를 사용한다. 
+# -------------------------------------------------
+jobs:
+  # job 1. lint-and-test: 코드 스타일 검사(ruff) + 테스트(pytest)
+  lint-and-test:
+    runs-on: ubuntu-latest  # 실행 환경(러너)
+    defaults:
+      run: # 이 job의 모든 run: 단계를 mlops-loan 폴더 안에서 실행한다. 
+        working-directory: mlops-
+        
+    steps:  # 위에서 아래로 순서대로 실행, 한 단계라도 실패하면 이후 단계는 건너뛴다.
+      # -- 1. 코드 내려 받기 : 내 저장소 코드를 이 머신으로 가져오는 단계 ----------
+      - uses: actions/checkout@v4
+
+      # -- 2. python 설치 ---------
+      - uses: actions/setup-python@v5
+        with: 
+          python-version: "3.10"
+
+      # -- 3. pip 캐시 : 패키지 파일을 전부 다운로드 -> 이후는 캐시에서 복원 -----------
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          # key: 캐시의 이름표. 같은 key가 있으면 그 캐시를 복원한다. 
+          key: ${{ runner.os }}-pip-${{ hashFiles('mlops-loan/requirements.txt') }}
+          # 같은 key가 없을 때, 앞부분이 같은 이전 캐시라도 가져와 일부 재사용한다.
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # -- 4. 패키지 설치 -----------------
+      #    pip install ruff pytest httpx  : CI 에서만 필요한 개발/검사용 패키지  
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install ruff pytest httpx    
+
+      # -- 5. 코드 스타일 검사 (린트) : 설정은 mlops-loan/ruff.toml을 자동으로 읽는다.  -----------
+      - name: Lint with ruff
+        run: ruff check .
+
+      # -- 6. 테스트 실행 ------------------
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  # job 2. docker-build : Docker 이미지 빌드 + 컨테이너 헬스체크
+  docker-build:
+    needs: lint-and-test  # 앞의 job(lint-and-test)이 성공했을 때만 이 job을 실행한다.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # -- 이미지 빌드 : github.sha = 이 커밋의 고유 해시. 추적 가능
+      - name: Build Docker image
+        run: |
+          cd mlops-loan
+          docker build -t loan-api:ci-${{ github.sha }} .
+
+      # -- 컨테이너 실행 + 헬스체크
+			#   모델 파일을 읽는 동안 서버가 아직 준비되지 않았을 수 있어서(러너가 느린 날 실패)
+      #   → 2초 간격으로 최대 15번(30초) 재시도하도록 바꿨다.
+      - name: Run container and health check
+        run: |
+          docker run -d -p 8000:8000 --name loan-api-ci loan-api:ci-${{ github.sha }}
+
+          for i in $(seq 1 15); do
+            # -s: 진행 표시 숨김 / -f: HTTP 오류(4xx, 5xx)면 실패로 처리
+            if curl -sf http://localhost:8000/health; then
+              echo ""
+              echo "헬스체크 성공"
+              exit 0
+            fi
+            echo "서버 준비 대기 중... ($i/15)"
+            sleep 2
+          done
+
+          echo "헬스체크 실패: 컨테이너 로그를 출력합니다."
+          docker logs loan-api-ci
+          exit 1
+
+# --------------------------------------------------------------
+# paths 필터 :  해당 서비스 코드가 변경된 경우에만 CI를 실행한다.
+# --------------------------------------------------------------
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mlops-loan/**'
+      - '.github/workflows/ci-service-a.yml'
