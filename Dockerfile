@@ -14,11 +14,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN adduser --disabled-password --no-create-home appuser
 USER appuser
 
-# 6. 애플리케이션 코드 복사 (코드만 포함)
+# 6. 애플리케이션 코드와 추론에 필요한 모델 아티팩트 복사
 COPY app/ ./app/
+COPY models/ ./models/
 
 # 7. 포트 문서화
 EXPOSE 8000
 
 # 8. 실행 명령
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+

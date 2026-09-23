@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="대출 승인 예측 모델과 프론트엔드가 연결되는 과정을 보여주는 학습용 예제">
+  <title>Loan Lab — 대출 승인 예측 실습</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#loan-form">입력 폼으로 건너뛰기</a>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Loan Lab 홈">
+      <span class="brand-mark" aria-hidden="true">L</span>
+      <span>LOAN LAB</span>
+    </a>
+    <nav class="site-nav" aria-label="주요 메뉴">
+      <a href="#predict">예측 실습</a>
+      <a href="#process">설계 과정</a>
+      <a href="/docs">API 문서</a>
+    </nav>
+    <span class="learning-badge">EDUCATIONAL DEMO</span>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> MODEL · INTERFACE · RESPONSIBILITY</p>
+        <h1 id="hero-title">숫자 뒤의 판단을<br><em>이해하는</em> 대출 예측</h1>
+        <p class="hero-description">
+          13개의 신청 정보를 입력하면 학습된 XGBoost 모델이 승인 가능성을 예측합니다.
+          결과뿐 아니라, API와 화면이 연결되는 과정까지 살펴보세요.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#predict">예측 시작하기 <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="#process">디자인 과정 보기 <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="예측 서비스 정보 요약">
+        <div class="signal-panel">
+          <div class="signal-topline">
+            <span>MODEL SIGNAL</span>
+            <span class="live-dot">API READY</span>
+          </div>
+          <div class="signal-orbit" aria-hidden="true">
+            <span class="orbit orbit-one"></span>
+            <span class="orbit orbit-two"></span>
+            <span class="orbit-core">13</span>
+          </div>
+          <p class="signal-caption">개의 입력 특성을 하나의<br>설명 가능한 흐름으로</p>
+          <div class="signal-stats">
+            <div><strong>4</strong><span>risk grades</span></div>
+            <div><strong>1</strong><span>prediction API</span></div>
+            <div><strong>0</strong><span>data saved</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip" aria-label="서비스 안내">
+      <p><span aria-hidden="true">✓</span> 실제 신용조회 없음</p>
+      <p><span aria-hidden="true">✓</span> 입력값 별도 저장 없음</p>
+      <p><span aria-hidden="true">✓</span> 결과 즉시 확인</p>
+      <p><span aria-hidden="true">ⓘ</span> 수업용 모델 데모</p>
+    </section>
+
+    <section class="predict-section" id="predict" aria-labelledby="predict-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-number">01 / TRY THE MODEL</p>
+          <h2 id="predict-title">승인 가능성을 예측해보세요</h2>
+        </div>
+        <p>입력값이 모델의 학습 범위를 벗어나지 않도록 각 필드의 단위와 범위를 확인하세요.</p>
+      </div>
+
+      <div class="workspace">
+        <div class="form-shell">
+          <ol class="stepper" aria-label="입력 단계">
+            <li class="is-active" data-step-indicator="1"><span>1</span><b>신청자 정보</b></li>
+            <li data-step-indicator="2"><span>2</span><b>재무 정보</b></li>
+            <li data-step-indicator="3"><span>3</span><b>대출 조건</b></li>
+          </ol>
+
+          <form id="loan-form" novalidate>
+            <div class="form-step is-active" data-step="1">
+              <div class="step-heading">
+                <p>STEP 1</p>
+                <h3>신청자 정보를 알려주세요</h3>
+                <span>모델이 기본적인 상환 환경을 이해하는 데 사용됩니다.</span>
+              </div>
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">나이 <small>필수</small></span>
+                  <span class="input-wrap"><input name="age" type="number" min="19" max="100" value="35" required><i>세</i></span>
+                  <span class="field-help">19세–100세</span>
+                </label>
+                <fieldset class="field choice-field">
+                  <legend class="field-label">성별 <small>필수</small></legend>
+                  <div class="segmented">
+                    <label><input type="radio" name="gender" value="남" checked><span>남</span></label>
+                    <label><input type="radio" name="gender" value="여"><span>여</span></label>
+                  </div>
+                </fieldset>
+                <label class="field">
+                  <span class="field-label">근속연수 <small>필수</small></span>
+                  <span class="input-wrap"><input name="employment_years" type="number" min="0" max="50" value="5" required><i>년</i></span>
+                  <span class="field-help">현재 직장 또는 사업 기준</span>
+                </label>
+                <label class="field">
+                  <span class="field-label">주거형태 <small>필수</small></span>
+                  <span class="select-wrap">
+                    <select name="housing_type" required>
+                      <option value="자가" selected>자가</option>
+                      <option value="전세">전세</option>
+                      <option value="월세">월세</option>
+                    </select>
+                  </span>
+                  <span class="field-help">현재 거주 중인 주택 기준</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-step" data-step="2" hidden>
+              <div class="step-heading">
+                <p>STEP 2</p>
+                <h3>상환 능력과 신용 정보를 입력해주세요</h3>
+                <span>금액은 모두 만원 단위입니다. 예: 5,000만원 → 5000</span>
+              </div>
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">연소득 <small>필수</small></span>
+                  <span class="input-wrap"><input name="annual_income" type="number" min="0" step="10" value="5000" required><i>만원</i></span>
+                  <span class="field-help">세전 연간 소득</span>
+                </label>
+                <label class="field">
+                  <span class="field-label">연간 카드 사용액 <small>필수</small></span>
+                  <span class="input-wrap"><input name="annual_card_usage" type="number" min="0" step="10" value="2400" required><i>만원</i></span>
+                  <span class="field-help">최근 1년 기준</span>
+                </label>
+                <label class="field">
+                  <span class="field-label">신용점수 <small>필수</small></span>
+                  <span class="input-wrap"><input name="credit_score" type="number" min="300" max="900" value="720" required><i>점</i></span>
+                  <span class="field-help">300점–900점</span>
+                </label>
+                <label class="field">
+                  <span class="field-label">기존 대출 건수 <small>필수</small></span>
+                  <span class="input-wrap"><input name="existing_loan_count" type="number" min="0" value="2" required><i>건</i></span>
+                  <span class="field-help">현재 상환 중인 대출</span>
+                </label>
+                <label class="field field-wide">
+                  <span class="field-label">부채비율 <small>필수</small></span>
+                  <span class="range-output"><b id="debt-output">35.5%</b><span>낮을수록 상환 여력이 큽니다</span></span>
+                  <input class="range" name="debt_ratio" type="range" min="0" max="100" step="0.1" value="35.5" required aria-describedby="debt-range-help">
+                  <span class="range-scale" id="debt-range-help"><i>0%</i><i>50%</i><i>100%</i></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-step" data-step="3" hidden>
+              <div class="step-heading">
+                <p>STEP 3</p>
+                <h3>원하는 대출 조건을 선택해주세요</h3>
+                <span>신청 금액과 기간에 따라 모델의 판단이 달라질 수 있습니다.</span>
+              </div>
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">대출 신청액 <small>필수</small></span>
+                  <span class="input-wrap"><input name="loan_amount" type="number" min="100" step="100" value="3000" required><i>만원</i></span>
+                  <span class="field-help">최소 100만원</span>
+                </label>
+                <label class="field">
+                  <span class="field-label">대출 기간 <small>필수</small></span>
+                  <span class="select-wrap">
+                    <select name="loan_period" required>
+                      <option value="12">12개월</option>
+                      <option value="24">24개월</option>
+                      <option value="36" selected>36개월</option>
+                      <option value="48">48개월</option>
+                      <option value="60">60개월</option>
+                    </select>
+                  </span>
+                  <span class="field-help">6개월–360개월 입력 가능</span>
+                </label>
+                <label class="field">
+                  <span class="field-label">대출 목적 <small>필수</small></span>
+                  <span class="select-wrap">
+                    <select name="loan_purpose" required>
+                      <option value="주택구입" selected>주택 구입</option>
+                      <option value="전세자금">전세 자금</option>
+                      <option value="자동차">자동차</option>
+                      <option value="사업자금">사업 자금</option>
+                      <option value="교육비">교육비</option>
+                      <option value="의료비">의료비</option>
+                      <option value="생활비">생활비</option>
+                    </select>
+                  </span>
+                  <span class="field-help">가장 가까운 항목 선택</span>
+                </label>
+                <fieldset class="field choice-field">
+                  <legend class="field-label">상환 방식 <small>필수</small></legend>
+                  <div class="stacked-options">
+                    <label><input type="radio" name="repayment_method" value="원리금균등" checked><span><b>원리금균등</b><small>매월 같은 금액을 상환</small></span></label>
+                    <label><input type="radio" name="repayment_method" value="원금균등"><span><b>원금균등</b><small>원금은 같고 이자는 감소</small></span></label>
+                    <label><input type="radio" name="repayment_method" value="만기일시"><span><b>만기일시</b><small>만기에 원금을 한 번에 상환</small></span></label>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+
+            <div class="form-error" id="form-error" role="alert" hidden></div>
+            <div class="form-actions">
+              <button class="button button-secondary" id="prev-button" type="button" hidden>이전</button>
+              <button class="button button-primary" id="next-button" type="button">다음 단계 <span aria-hidden="true">→</span></button>
+              <button class="button button-primary submit-button" id="submit-button" type="submit" hidden>AI 예측 실행 <span aria-hidden="true">↗</span></button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="context-panel" aria-label="실습 안내">
+          <div class="context-card context-dark">
+            <p class="context-kicker">WHY THIS FLOW?</p>
+            <h3>좋은 폼은 모델보다 먼저 사용자를 이해합니다.</h3>
+            <p>13개 필드를 한 번에 나열하지 않고 의사결정의 맥락에 따라 세 단계로 나눴습니다.</p>
+            <div class="mini-diagram" aria-label="데이터 처리 흐름">
+              <span>INPUT</span><i>→</i><span>API</span><i>→</i><span>MODEL</span>
+            </div>
+          </div>
+          <div class="context-card">
+            <p class="context-kicker">RESPONSIBLE AI</p>
+            <ul class="check-list">
+              <li><span>01</span><p><b>학습용 결과</b><small>실제 금융사의 심사 결과가 아닙니다.</small></p></li>
+              <li><span>02</span><p><b>확률은 보조 정보</b><small>모델 출력값을 절대적 신뢰도로 해석하지 않습니다.</small></p></li>
+              <li><span>03</span><p><b>편향 가능성</b><small>학습 데이터의 한계가 결과에 반영될 수 있습니다.</small></p></li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <section class="result-panel" id="result-panel" aria-live="polite" hidden>
+        <div class="result-main">
+          <p class="result-badge">학습용 AI 예측 결과</p>
+          <div class="result-heading-row">
+            <div>
+              <p class="result-kicker" id="result-kicker">PREDICTION COMPLETE</p>
+              <h3 id="result-title">승인 가능성이 높게 예측됐어요</h3>
+            </div>
+            <div class="score-ring" id="score-ring" aria-label="승인 확률">
+              <div><strong id="score-value">—</strong><span>승인 확률</span></div>
+            </div>
+          </div>
+          <p class="result-description" id="result-description"></p>
+          <div class="result-actions">
+            <button class="button button-secondary" id="edit-button" type="button">입력값 수정</button>
+            <button class="text-link" id="toggle-raw" type="button" aria-expanded="false">API 응답 보기</button>
+          </div>
+          <pre id="raw-result" hidden><code></code></pre>
+        </div>
+        <div class="result-details">
+          <div class="grade-block"><span>RISK GRADE</span><strong id="risk-grade">—</strong><small id="grade-label">모델 위험 등급</small></div>
+          <dl>
+            <div><dt>신청 금액</dt><dd id="summary-amount">—</dd></div>
+            <div><dt>대출 기간</dt><dd id="summary-period">—</dd></div>
+            <div><dt>신용점수</dt><dd id="summary-credit">—</dd></div>
+            <div><dt>요청 ID</dt><dd id="summary-id">—</dd></div>
+          </dl>
+          <p class="result-disclaimer">이 결과는 학습용 예측이며 실제 대출 승인, 한도, 금리를 보장하지 않습니다.</p>
+        </div>
+      </section>
+    </section>
+
+    <section class="process-section" id="process" aria-labelledby="process-title">
+      <div class="section-heading light-heading">
+        <div>
+          <p class="section-number">02 / DESIGN PROCESS</p>
+          <h2 id="process-title">코드보다 먼저, 디자인을 조사했습니다</h2>
+        </div>
+        <p>좋은 화면을 그대로 복제하지 않고 관찰한 원칙을 이 서비스의 목적에 맞게 번역했습니다.</p>
+      </div>
+
+      <div class="process-grid">
+        <article class="process-card process-intro">
+          <span>THE BRIEF</span>
+          <h3>차분한 금융 신뢰감과<br>학생용 ML 투명성</h3>
+          <p>유행하는 보라색 그래디언트 대신 정보 계층, 읽기 쉬운 여백, 명확한 상태 표현에 집중했습니다.</p>
+          <a href="https://inspomcp.dev/" target="_blank" rel="noreferrer">Inspo 아카이브 보기 ↗</a>
+        </article>
+        <article class="process-card">
+          <span>01 · RESEARCH</span>
+          <h3>실제 사례에서 관찰하기</h3>
+          <ul>
+            <li>짧고 생활어에 가까운 안내</li>
+            <li>핵심 수치가 먼저 보이는 구조</li>
+            <li>불안을 낮추는 신뢰 문구</li>
+          </ul>
+        </article>
+        <article class="process-card">
+          <span>02 · SYSTEM</span>
+          <h3>원칙을 토큰으로 바꾸기</h3>
+          <div class="token-row" aria-label="주요 색상 토큰">
+            <i style="--token:#101828"></i><i style="--token:#315EFB"></i><i style="--token:#14B87A"></i><i style="--token:#F5F7FA"></i>
+          </div>
+          <p>8px 간격 체계 · 16px 카드 반경 · 강한 제목과 담백한 본문</p>
+        </article>
+        <article class="process-card">
+          <span>03 · BUILD</span>
+          <h3>API 계약에서 UI 만들기</h3>
+          <p>Pydantic의 필드 범위와 범주를 그대로 HTML 검증과 선택지에 반영했습니다.</p>
+          <code>POST /predict</code>
+        </article>
+        <article class="process-card">
+          <span>04 · VERIFY</span>
+          <h3>상태와 화면을 함께 검수하기</h3>
+          <p>정상·오류·로딩·승인·거절 상태와 모바일 레이아웃을 모두 확인합니다.</p>
+          <div class="verify-list"><b>DESKTOP</b><b>MOBILE</b><b>ACCESSIBLE</b></div>
+        </article>
+      </div>
+
+      <div class="lesson-note">
+        <span>TEACHING NOTE</span>
+        <p>레퍼런스를 사용한다는 것은 화면을 베끼는 일이 아닙니다. <strong>관찰한 디자인 문법을 문제에 맞게 다시 쓰는 일</strong>입니다.</p>
+        <a href="https://github.com/seokssaem/mlops-loan/blob/main/DESIGN.md">DESIGN.md 읽기 →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="brand footer-brand"><span class="brand-mark" aria-hidden="true">L</span><span>LOAN LAB</span></div>
+    <p>FastAPI · XGBoost · Vanilla Web</p>
+    <p>수업을 위한 오픈 예제 — 금융 자문이 아닙니다.</p>
+  </footer>
+</body>
+</html>
+
