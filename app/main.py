@@ -16,8 +16,11 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.model import LoanModel
 from app.schemas import (
@@ -76,9 +79,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+STATIC_DIR = Path(__file__).parent / 'static'
+app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')
+
 @app.get('/')
 async def root():
-    """서버가 기본 요청에 응답하는지 빠르게 확인하는 엔드포인트"""
+    """대출 승인 예측 학습용 프론트엔드를 제공한다."""
+    return FileResponse(STATIC_DIR / 'index.html')
+
+@app.get('/demo', include_in_schema=False)
+async def demo():
+    """수업 자료에서 명시적인 데모 주소로도 같은 화면을 제공한다."""
+    return FileResponse(STATIC_DIR / 'index.html')
+
+@app.get('/api/status')
+async def api_status():
+    """프론트엔드와 별개로 API 서버의 기본 동작 상태를 확인한다."""
     return {'data': '서버 동작~~!! 스타투!!'}
 
 @app.get('/health')
@@ -179,3 +195,4 @@ async def model_info():
         features=model.feature_names,
         threshold=model.threshold,
     )
+

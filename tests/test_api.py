@@ -13,6 +13,7 @@ tests/test_api.py
 5. 통합 테스트 - POST /predict/batch
 6. 통합 테스트 - GET /model/info
 '''
+import re
 import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
@@ -23,6 +24,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.model import FIELD_TO_COLUMN, LoanModel
+from app.schemas import LoanRequest
 
 # =================================================================
 # 1. 준비 (헬퍼 함수 + fixture)
@@ -172,13 +174,52 @@ def test_predict_batch_empty_list_returns_empty(mock_model):
     mock_model.pipeline.predict_proba.assert_not_called()
 
 # =====================================================================
-# 3. 통합 테스트 - GET /, /health
+# 3. 통합 테스트 - GET /, /api/status, /health
 # =====================================================================
 def test_root(client):
-    """루트 엔드포인트가 200과 data 키를 돌려주는지 검사한다."""
+    """루트 엔드포인트가 교육용 프론트엔드를 제공하는지 검사한다."""
     response = client.get('/')
     assert response.status_code == 200
+    assert response.headers['content-type'].startswith('text/html')
+    assert 'Loan Lab' in response.text
+    assert 'name="credit_score"' in response.text
+
+
+def test_demo_alias(client):
+    """수업 자료에서 사용할 /demo 주소도 같은 프론트엔드를 제공한다."""
+    response = client.get('/demo')
+    assert response.status_code == 200
+    assert '대출 승인 예측 실습' in response.text
+
+
+def test_api_status(client):
+    """기존 루트 상태 응답은 명시적인 API 주소에서 제공한다."""
+    response = client.get('/api/status')
+    assert response.status_code == 200
     assert 'data' in response.json()
+
+
+@pytest.mark.parametrize(
+    'path, content_type',
+    [
+        ('/static/styles.css', 'text/css'),
+        ('/static/app.js', 'text/javascript'),
+    ],
+)
+def test_static_assets(client, path, content_type):
+    """브라우저가 필요한 정적 파일을 올바른 형식으로 받을 수 있다."""
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith(content_type)
+
+
+def test_frontend_fields_match_api_contract(client):
+    """프론트엔드 입력 이름과 Pydantic 요청 필드가 서로 어긋나지 않는다."""
+    html = client.get('/').text
+    input_names = set(
+        re.findall(r'<(?:input|select)[^>]+name="([^"]+)"', html)
+    )
+    assert input_names == set(LoanRequest.model_fields)
 
 def test_health_when_model_loaded(client):
     """모델이 적재된 상태 - status 는 healthy, model_loaded 는 True"""
@@ -446,4 +487,5 @@ def test_predict_returns_500_on_unexpected_error(client, mock_model):
 
     response = client.post("/predict", json=_make_valid_request())
 
-    assert response.status_code == 500    
+    assert response.status_code == 500
+
