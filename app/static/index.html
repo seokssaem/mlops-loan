@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대출 심사 예측 데모</title>
+    <!-- style.css 파일 넣을 자리 -->
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+    <!-- 헤더 : 화면 위 -->
+    <header class="topbar">
+        <div class="topbar__inner">
+            <div class="brand">
+                <span class="brand__mark">₩</span>
+                <span class="brand__name">LoanSense</span>
+                <span class="brand__badge">ML DEMO</span>
+            </div>
+            <!-- target="_blank" rel="noopener" ==> 새 탭 뜨기 (새 탭이 악용할 여지가 있어서 막는 보안관용구) -->
+            <a href="/docs" class="topbar__link" target="_blank" rel="noopener">API 문서 -></a>
+        </div>
+    </header>
+
+    <!-- 메인 : 좌측 폼, 우측 결과 패널 -->
+    <main class="layout">
+        <!-- 좌측 패널 -->
+        <section class="panel form-panel">
+            <div class="panel__head">
+                <h1>대출 승인 예측</h1>
+                <p>고객 정보를 입력하면 학습된 XGBoost 모델이 승인 가능성을 예측합니다.</p>
+            </div>
+
+            <!-- 대출 정보 폼 -->
+            <!-- novalidate : 브라우저 기본 검증 UI를 끈다. -->
+            <form id="loan-form" novalidate>
+                <!-- 필드 그룹 3개 fieldset + legend : 관련있는 값끼리 묶고 싶을 때 사용 -->
+                
+                <!-- 기본 정보 -->
+                <fieldset class="field-group">
+                    <legend>기본 정보</legend>
+                    <div class="grid grid--3">
+                        <label class="field">
+                            <span>나이</span>
+                            <input type="number" name="age" min="19" max="100" value="35" required>
+                        </label>
+
+                        <label class="field">
+                            <span>성별</span>
+                            <select name="gender" required>
+                                <option value="남">남</option>
+                                <option value="여">여</option>
+                            </select>
+                        </label>
+
+                        <label class="field">
+                            <span>주거형태</span>
+                            <select name="housing_type" required>
+                                <option value="자가">자가</option>
+                                <option value="전세">전세</option>
+                                <option value="월세">월세</option>
+                            </select>
+                        </label>                                                
+                    </div>
+                </fieldset>
+
+                <!-- 재무 정보 -->
+                <fieldset class="field-group">
+                    <legend>재무 정보</legend>
+                    <div class="grid grid--2">
+                        <label class="field">
+                            <span>연소득 (만원)</span>
+                            <input type="number" name="annual_income" min="0" step="10" value="5000" required>
+                        </label>
+                        <label class="field">
+                            <span>근속연수 (년)</span>
+                            <input type="number" name="employment_years" min="0" max="50" value="5" required>
+                        </label>
+                        <label class="field">
+                            <span>신용점수</span>
+                            <input type="number" name="credit_score" min="300" max="900" value="720" required>
+                        </label>
+                        <label class="field">
+                            <span>기존 대출 건수</span>
+                            <input type="number" name="existing_loan_count" min="0" value="2" required>
+                        </label>
+                        <label class="field">
+                            <span>연간 카드 사용액 (만원)</span>
+                            <input type="number" name="annual_card_usage" min="0" step="10" value="2400" required>
+                        </label>
+                        <label class="field">
+                            <span>부채비율 (%)</span>
+                            <input type="number" name="debt_ratio" min="0" max="100" step="0.1" value="35.5" required>
+                        </label>                        
+                    </div>
+
+                </fieldset>
+
+                <!-- 대출 정보 -->
+                <fieldset class="field-group">
+                    <legend>대출 정보</legend>
+                    <div class="grid grid--2">
+                        <label class="field">
+                            <span>대출 신청액 (만원)</span>
+                            <input type="number" name="loan_amount" min="100" step="10" value="3000" required>
+                        </label>
+                        <label class="field">
+                            <span>대출 기간 (개월)</span>
+                            <input type="number" name="loan_period" min="6" max="360" value="36" required>
+                        </label>
+                        <label class="field">
+                            <span>대출 목적</span>
+                            <select name="loan_purpose" required>
+                                <option value="주택구입">주택구입</option>
+                                <option value="전세자금">전세자금</option>
+                                <option value="사업자금">사업자금</option>
+                                <option value="자동차">자동차</option>
+                                <option value="교육비">교육비</option>
+                                <option value="의료비">의료비</option>
+                                <option value="생활비">생활비</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>상환 방식</span>
+                            <select name="repayment_method" required>
+                                <option value="원리금균등">원리금균등</option>
+                                <option value="원금균등">원금균등</option>
+                                <option value="만기일시">만기일시</option>
+                            </select>
+                        </label>                                                                        
+                    </div>
+                </fieldset>                
+                
+                <div class="form-actions">
+                    <button id="submit-btn" type="submit">
+                        <span class="btn-label">승인 예측하기</span>
+                        <!-- <span class="btn-spinner" hidden> : js가 "예측중..." 로딩 표시 -->
+                        <span class="btn-spinner" hidden></span>
+                    </button>
+
+                    <!-- 에러 메세지처럼 즉시 알려야 할 때 사용 -->
+                    <span id="form-error" class="form-error" role="alert"></span>
+
+                </div>
+            </form>
+        </section>
+
+        <!-- 우측 패널 : 결과 패널 -->
+        <section class="panel result-panel">
+            <!-- 버튼 누르기 전 -->
+            <div class="result-empty" id="result-empty">
+                <div class="result-empty__icon">★</div>
+                <p>왼쪽에서 정보를 입력하고<br>예측을 실행해 보세요.</p>
+            </div>
+
+            <!-- 버튼 누른 후 : 예측 결과 -->
+            <div class="result-content" id="result-content" hidden>
+                <!-- 원 그래프 -->
+                <div class="gauge-wrap">
+                    <svg class="gauge" viewBox="0 0 160 160">
+                        <circle class="gauge__track" cx="80" cy="80" r="70"></circle>
+                        <circle class="gauge__fill" id="gauge-fill" cx="80" cy="80" r="70"></circle>
+                    </svg>
+                    <div class="gauge-center">
+                        <div class="gauge-percent" id="gauge-percent">0%</div>
+                        <div class="gauge-label">승인 확률</div>
+                    </div>
+                </div>
+
+                <!-- 결과 배지 -->
+                <div class="decision-badge" id="decision-badge">-</div>
+
+                <!-- 결과 메타 정보 -->
+                <div class="result-meta">
+                    <div class="result-meta__row">
+                        <span>리스크 등급</span>
+                        <span class="grade-pill" id="risk-grade">-</span>
+                    </div>
+                    <div class="result-meta__row">
+                        <span>요청 ID</span>
+                        <span class="mono" id="request-id">-</span>
+                    </div>
+                    <div class="result-meta__row">
+                        <span>예측 시각</span>
+                        <span class="mono" id="timestamp">-</span>
+                    </div>                                        
+                </div>
+            </div>
+
+
+        </section>
+
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <p>이 화면은 <code>mlops-loan</code>의 <code>/predict</code> API를 호출하는 학습데모 페이지입니다.</p>
+    </footer>
+
+    <!-- 자바스크립트 app.js연결 -->
+    <script src="static/app.js"></script>
+</body>
+</html>

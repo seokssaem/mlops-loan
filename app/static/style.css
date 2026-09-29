@@ -1,0 +1,365 @@
+/* 디자인 관련 - 색상/간격/타이포그래픽 등 :root에 모아두면 나중에 색만 바꿔서 
+전체 화면 톤을 쉽게 바꿀 수 있다. 
+--이름 형태는 CSS변수 */
+
+/* 디자인 관련 - 색상/간격/타이포그래픽 등 :root에 모아두면 나중에 색만 바꿔서 
+전체 화면 톤을 쉽게 바꿀 수 있다. 
+--이름 형태는 CSS변수 */
+
+:root {
+    --bg: #f4f5fb;
+    --panel: #fff;
+    --ink: #12172b; 
+    --muted: #6b7280; 
+    --border: #e6e8f0;
+    --accent: #4f46e5;
+    --accent-dark: #4338ca;
+    --accent-soft: #eef2ff;
+    --grade-a: #16a34a;
+    --grade-b: #2563eb;
+    --grade-c: #d97706;
+    --grade-d: #dc2626;
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --shadow-card: 0 1px 2px rgba(18, 23, 43, 0.04), 0 12px 32px rgba(18, 23, 43, 0.06);
+    --font: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", "Noto Sans KR", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* 레이아웃 - 2단 배치 1.5:1 비율 --> 반응형(860px보다 작으면) 1단 */
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+}
+
+.layout {
+    max-width: 1080px;
+    margin: 32px auto 0;
+    padding: 0 24px 48px;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 860px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+.panel {
+    background: var(--panel);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 28px;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------- 상단바 ---------- */
+.topbar {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 17px;
+}
+.brand__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+}
+.brand__badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.topbar__link {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.topbar__link:hover {
+  color: var(--accent);
+}
+
+/* ---------- 폼 제목 ---------- */
+.panel__head h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+.panel__head p {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* 필드 그룹 - 입력창 스타일 */
+.field-group {
+  border: none;
+  margin: 0 0 22px;
+}
+.field-group legend {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+.grid--2 { grid-template-columns: 1fr 1fr; }
+.grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.field input,
+.field select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: #fbfbfe;
+}
+.field input:focus,
+.field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.panel {
+  min-width: 0;
+}
+
+.field {
+  min-width: 0; /* grid/flex 자식의 기본 min-width:auto로 인한 가로 오버플로 방지 */
+}
+.field input,
+.field select {
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field input:focus,
+.field select:focus {
+  background: #fff;
+}
+
+@media (max-width: 520px) {
+  .grid--2,
+  .grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+button#submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 22px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+button#submit-btn:hover {
+  background: var(--accent-dark);
+}
+button#submit-btn:active {
+  transform: scale(0.98);
+}
+button#submit-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  position: sticky;
+  top: 88px;
+}
+.result-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.result-empty__icon {
+  font-size: 34px;
+  color: var(--border);
+  margin-bottom: 10px;
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.form-error {
+  color: var(--grade-d);
+  font-size: 13px;
+  min-height: 1em;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.gauge-wrap { position: relative; width: 160px; height: 160px; }
+.gauge { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gauge__track { fill: none; stroke: var(--border); stroke-width: 12; }
+.gauge__fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-dasharray: 439.8;
+  stroke-dashoffset: 439.8;
+  transition: stroke-dashoffset 0.7s ease;
+}
+
+.gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.gauge-percent {
+  font-size: 28px;
+  font-weight: 800;
+}
+.gauge-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.result-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: rise 0.35s ease;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.gauge-percent {
+  font-size: 28px;
+  font-weight: 800;
+}
+.gauge-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.result-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: rise 0.35s ease;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

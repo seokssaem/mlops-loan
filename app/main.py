@@ -16,8 +16,11 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.model import LoanModel
 from app.schemas import (
@@ -75,6 +78,20 @@ app = FastAPI(
     version='1.0.5',
     lifespan=lifespan
 )
+
+# ---------------------------------------------------------------------------
+# 프론트엔드(데모 화면) 서빙 (신규 추가)
+#   - '/' 는 기존 헬스용 JSON 응답을 그대로 유지한다 (테스트/로드밸런서가 의존).
+#   - 사람이 보는 데모 화면은 '/ui' 경로에 별도로 둔다.
+#   - CSS/JS 같은 정적 자산은 '/static'에 마운트해 index.html이 상대경로로 불러온다.
+# ---------------------------------------------------------------------------
+STATIC_DIR = Path(__file__).parent / 'static'
+app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')
+
+@app.get('/ui')
+async def serve_ui():
+    """사람이 보는 대출 승인 예측 데모 화면 (정적 HTML)."""
+    return FileResponse(STATIC_DIR / 'index.html')
 
 @app.get('/')
 async def root():
